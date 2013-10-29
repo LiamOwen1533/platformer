@@ -210,21 +210,13 @@ class Player(pygame.sprite.Sprite):
 
         # handle the player movement left/right keys
         key = pygame.key.get_pressed()
-        if joystick.get_count():
-            axis = round(game.j.get_axis(0))
-            jump = game.j.get_button(1)
-            fire = game.j.get_button(0)
-        else:
-            axis = 0
-            jump = False
-            fire = False
         
-        if key[pygame.K_LEFT] or axis < 0:
+        if key[pygame.K_LEFT]:
             self.rect.x -= 300 * dt
             self.image = self.left_image
             self.direction = -1
             self.dx = 0
-        if key[pygame.K_RIGHT] or axis > 0:
+        if key[pygame.K_RIGHT]:
             self.rect.x += 300 * dt
             self.image = self.right_image
             self.direction = 1
@@ -237,7 +229,7 @@ class Player(pygame.sprite.Sprite):
             self.dx = 0
 
         # handle the player shooting key
-        if (key[pygame.K_LSHIFT] or fire) and not self.gun_cooldown:
+        if (key[pygame.K_LSHIFT]) and not self.gun_cooldown:
             # create a bullet at an appropriate position (the side of the player
             # sprite) and travelling in the correct direction
             if self.direction > 0:
@@ -257,7 +249,7 @@ class Player(pygame.sprite.Sprite):
         # flag
         # print(self.previous_wall)  # Debug.
 
-        if (self.resting or self.on_wall) and (key[pygame.K_SPACE] or jump):
+        if (self.resting or self.on_wall) and key[pygame.K_SPACE]:
             game.jump.play()
             # we jump by setting the player's velocity to something large going
             # up (positive Y is down the screen)
@@ -365,15 +357,6 @@ class Game(object):
         self.health = 100
         # Player Lives
         self.lives = 3
-
-        #let's turn on the joysticks just so we can play with em
-        for x in range(joystick.get_count()):
-            self.j = joystick.Joystick(x)
-            self.j.init()
-            txt = 'Enabled joystick: ' + self.j.get_name() + 'id: ' + str(self.j.get_id())
-            print(txt)
-        if not joystick.get_count():
-            print('No Joysticks to Initialize')
 
         # we draw the background as a static image so we can just load it in the
         # main loop
