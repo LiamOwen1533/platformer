@@ -31,7 +31,7 @@ class Collectable(pygame.sprite.Sprite):
     def update(self, dt, game):
         if self.rect.colliderect(game.player.rect):
             game.score = game.score + 10
-            if game.health < 100:
+            if game.health < 200:
                 game.health = game.health + 5
             self.kill()
 
@@ -96,16 +96,25 @@ class Enemy(pygame.sprite.Sprite):
         # instead)
         if self.rect.colliderect(game.player.rect):
             game.health = game.health - 10
-            #game.player.is_dead = True
+            # Lets turn the enemy around if they collide with the player.
+            if self.direction > 0:
+                self.image = self.left_image
+            else:
+                self.image = self.right_image
+            self.direction *= -1
 
 #
 # Bullets fired by the player move in one direction until their lifespan runs
 # out or they hit an enemy. This could be extended to allow for enemy bullets.
 #
 class Bullet(pygame.sprite.Sprite):
-    image = pygame.image.load('bullet.png')
     def __init__(self, origin, location, direction, *groups):
         super(Bullet, self).__init__(*groups)
+        # lets change the projectile depending on who fired.
+        if origin == 'player':
+            self.image = pygame.image.load('bullet.png')
+        else:
+            self.image = pygame.image.load('enemy-bullet.png')
         self.rect = pygame.rect.Rect(location, self.image.get_size())
         # movement in the X direction; postive is right, negative is left;
         # inherited from the player (shooter)
@@ -354,7 +363,7 @@ class Game(object):
         # Lets keep score
         self.score = 0
         # Player health
-        self.health = 100
+        self.health = 200
         # Player Lives
         self.lives = 3
 
@@ -414,21 +423,28 @@ class Game(object):
             screen.blit(background, (0, 0))
             self.tilemap.draw(screen)
 
-            BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-            WINHEIGHT = 360
-            TEXTCOLOR = (255, 255, 255)
+            basicFont = pygame.font.Font('freesansbold.ttf', 18)
+            textColor = (255, 255, 255)
 
-            scoreSurf = BASICFONT.render('Score: %s' % (self.score), 1, TEXTCOLOR)
+            scoreSurf = basicFont.render('Score: %s' % (self.score), 1, textColor)
             scoreRect = scoreSurf.get_rect()
             scoreRect.topleft = (20, 50)
             screen.blit(scoreSurf, scoreRect)
             
-            healthSurf = BASICFONT.render('Health: %s' % (self.health), 1, TEXTCOLOR)
+#            healthSurf = basicFont.render('Health: %s' % (self.health), 1, textColor)
+            healthSurf = basicFont.render('Health: ', 1, textColor)
             healthRect = healthSurf.get_rect()
             healthRect.topleft = (20, 10)
             screen.blit(healthSurf, healthRect)
 
-            livesSurf = BASICFONT.render('Lives: %s' % (self.lives), 1, TEXTCOLOR)
+            healthbar = pygame.image.load("healthbar.png")
+            health = pygame.image.load("health.png")
+
+            screen.blit(healthbar, (90,11))
+            for health1 in range(self.health):
+                screen.blit(health, (health1+93,14))
+
+            livesSurf = basicFont.render('Lives: %s' % (self.lives), 1, textColor)
             livesRect = livesSurf.get_rect()
             livesRect.topleft = (20, 30)
             screen.blit (livesSurf, livesRect)
@@ -441,16 +457,21 @@ class Game(object):
             #if self.player.is_dead:
             if self.health <= 0:
                 self.lives = self.lives - 1
-                self.health = 100
+                self.health = 200
                 self.explosion.play()
                 self.player.rect = pygame.rect.Rect((start_cell.px, start_cell.py), self.player.image.get_size())
 
+            gameover = pygame.image.load("gameover.png")
+            youwin = pygame.image.load("youwin.png")
+
             if self.lives == 0:
-                print 'YOU DIED'
+                screen.blit(gameover, (0,0))
+                pygame.display.flip()
                 return
 
             if self.tilemap.layers['triggers'].collide(self.player.rect, 'exit'):
-                print 'YOU WIN'
+                screen.blit(youwin, (0,0))
+                pygame.display.flip()
                 return
 
 if __name__ == '__main__':
