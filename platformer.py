@@ -50,7 +50,15 @@ class Explosion(pygame.sprite.Sprite):
         self._frame = 0
 
         self.image = self._images[self._frame]
-        self.rect = pygame.rect.Rect(location, self.image.get_size())
+        w, h = self.image.get_size()
+        
+        # location passed from creation is the center of the collided sprite
+        # this needs to become the top left of the explosion.
+        x, y = location  # unpack the location tuple
+        x = x - (w / 2)
+        y = y - (h / 2)
+
+        self.rect = pygame.rect.Rect((x, y), (w, h))
 
     def update(self, dt, game):
         # decrement the lifespan of the explosion by the amount of time passed and
@@ -191,8 +199,9 @@ class Bullet(pygame.sprite.Sprite):
         # if collided" flag as True so any collided enemies are removed from the
         # game
         if self.origin == 'player':
-            if pygame.sprite.spritecollide(self, game.enemies, True):
-                Explosion(game.explosion_images, self.rect.center, 10, game.sprites)
+            impact = pygame.sprite.spritecollide(self, game.enemies, True)
+            if impact:
+                Explosion(game.explosion_images, impact[0].rect.center, 10, game.sprites)
                 game.explosion.play()
                 game.score = game.score + 10
                 # we also remove the bullet from the game or it will continue on
