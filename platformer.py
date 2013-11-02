@@ -18,9 +18,56 @@
 # Author: Tim Cumming aka Elusive One
 # Created: 21/04/13
 
+import os
 import pygame
 import tmx
 from pygame import joystick
+
+
+def load_sliced_sprites(self, w, h, filename):
+    # Master can be any height. Frames must be the same width. Master width will be len(frames)*frame.width
+    images = []
+    master_image = pygame.image.load(os.path.join('', filename)).convert_alpha()
+
+    master_width, master_height = master_image.get_size()
+    for i in xrange(int(master_width/w)):
+        images.append(master_image.subsurface((i*w,0,w,h)))
+    return images
+
+
+class Explosion(pygame.sprite.Sprite):
+    def __init__(self, images, location, fps = 10, *groups):
+        super(Explosion, self).__init__(*groups)
+        self._images = images
+        # time this explosion will live for in seconds
+        self.lifespan = 0.5
+
+        # Track the time we started, and the time between updates.
+        # Then we can figure out when we have to switch the image.
+        self._start = pygame.time.get_ticks()
+        self._delay = 1000 / fps
+        self._last_update = 0
+        self._frame = 0
+
+        self.image = self._images[self._frame]
+        self.rect = pygame.rect.Rect(location, self.image.get_size())
+
+    def update(self, dt, game):
+        # decrement the lifespan of the explosion by the amount of time passed and
+        # remove it from the game if its time runs out
+        self.lifespan -= dt
+        if self.lifespan < 0:
+            self.kill()
+            return
+
+        t = pygame.time.get_ticks()
+
+        if t - self._last_update > self._delay:
+            self._frame += 1
+            if self._frame >= len(self._images): self._frame = 0
+            self.image = self._images[self._frame]
+            self._last_update = t
+
 
 class Collectable(pygame.sprite.Sprite):
     def __init__(self, location, *groups):
@@ -36,8 +83,8 @@ class Collectable(pygame.sprite.Sprite):
             self.kill()
 
 #
-# Our enemies are fairly dumb, just moving from side to side between "reverse"
-# map triggers. They shoot at the player if they are facing them and within 150px.
+# Our enemies just move from side to side between "reverse" map triggers.
+# They shoot at the player if they are facing them and within 150px.
 #
 class Enemy(pygame.sprite.Sprite):
     #image = pygame.image.load('enemy.png')
@@ -99,8 +146,10 @@ class Enemy(pygame.sprite.Sprite):
             # Lets turn the enemy around if they collide with the player.
             if self.direction > 0:
                 self.image = self.left_image
+                self.rect.x = self.rect.x - 16
             else:
                 self.image = self.right_image
+                self.rect.x = self.rect.x + 16
             self.direction *= -1
 
 #
@@ -143,6 +192,7 @@ class Bullet(pygame.sprite.Sprite):
         # game
         if self.origin == 'player':
             if pygame.sprite.spritecollide(self, game.enemies, True):
+                Explosion(game.explosion_images, self.rect.center, 10, game.sprites)
                 game.explosion.play()
                 game.score = game.score + 10
                 # we also remove the bullet from the game or it will continue on
@@ -397,6 +447,8 @@ class Game(object):
         for coin in self.tilemap.layers['triggers'].find('coin'):
             Collectable((coin.px, coin.py), self.coins)
 
+        self.explosion_images = load_sliced_sprites(0, 20, 20, 'explosion-sprite.png')
+
         # load the sound effects used in playing a level of the game
         self.jump = pygame.mixer.Sound('jump.wav')
         self.shoot = pygame.mixer.Sound('shoot.wav')
@@ -431,7 +483,6 @@ class Game(object):
             scoreRect.topleft = (20, 50)
             screen.blit(scoreSurf, scoreRect)
             
-#            healthSurf = basicFont.render('Health: %s' % (self.health), 1, textColor)
             healthSurf = basicFont.render('Health: ', 1, textColor)
             healthRect = healthSurf.get_rect()
             healthRect.topleft = (20, 10)
@@ -449,7 +500,7 @@ class Game(object):
             livesRect.topleft = (20, 30)
             screen.blit (livesSurf, livesRect)
             
-            pygame.display.flip()
+            pygame.display.update()
 
             # terminate this main loop if the player dies; a simple change here
             # could be to replace the "print" with the invocation of a simple
@@ -466,12 +517,12 @@ class Game(object):
 
             if self.lives == 0:
                 screen.blit(gameover, (0,0))
-                pygame.display.flip()
+                pygame.display.update()
                 return
 
             if self.tilemap.layers['triggers'].collide(self.player.rect, 'exit'):
                 screen.blit(youwin, (0,0))
-                pygame.display.flip()
+                pygame.display.update()
                 return
 
 if __name__ == '__main__':
