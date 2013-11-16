@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # Author: Tim Cumming aka Elusive One
-# Created: 21/04/13
+# Created: 29/10/13
 
 import os
 import pygame
@@ -29,6 +29,7 @@ def load_sliced_sprites(self, w, h, filename):
     images = []
     master_image = pygame.image.load(os.path.join('', filename)).convert_alpha()
 
+    # use pygame subsurface for splitting into frames from one image.
     master_width, master_height = master_image.get_size()
     for i in xrange(int(master_width/w)):
         images.append(master_image.subsurface((i*w,0,w,h)))
@@ -50,7 +51,7 @@ class Explosion(pygame.sprite.Sprite):
         self._frame = 0
 
         self.image = self._images[self._frame]
-        w, h = self.image.get_size()
+        w, h = self.image.get_size()  # unpack the image size tuple
         
         # location passed from creation is the center of the collided sprite
         # this needs to become the top left of the explosion.
@@ -162,7 +163,7 @@ class Enemy(pygame.sprite.Sprite):
 
 #
 # Bullets fired by the player move in one direction until their lifespan runs
-# out or they hit an enemy. This could be extended to allow for enemy bullets.
+# out or they hit an enemy. This has been extended to allow for enemy bullets.
 #
 class Bullet(pygame.sprite.Sprite):
     def __init__(self, origin, location, direction, *groups):
@@ -174,7 +175,7 @@ class Bullet(pygame.sprite.Sprite):
             self.image = pygame.image.load('enemy-bullet.png')
         self.rect = pygame.rect.Rect(location, self.image.get_size())
         # movement in the X direction; postive is right, negative is left;
-        # inherited from the player (shooter)
+        # inherited from the origin (player / enemy)
         self.direction = direction
         # time this bullet will live for in seconds
         self.lifespan = 1
